@@ -300,6 +300,19 @@ func (s *DBRootCommandShellSuite) Test_GivenATableNameWithSpecialCharacters_When
 	s.tc.AssertSqlEquals(outS, prefix+expected)
 }
 
+func (s *DBRootCommandShellSuite) Test_GivenATableNameWithTheSameSignatureAsExpainQueryPlan_WhenQueryingIt_ExpectNotToBeTreatedAsExplainQueryPlan() {
+	_, _, err := s.tc.Execute("CREATE TABLE fake_explain (ID INTEGER PRIMARY KEY, PARENT INTEGER, NOTUSED INTEGER, DETAIL TEXT);")
+	s.tc.Assert(err, qt.IsNil)
+
+	outS, errS, err := s.tc.ExecuteShell([]string{"SELECT * FROM fake_explain;"})
+	s.tc.Assert(err, qt.IsNil)
+	s.tc.Assert(errS, qt.Equals, "")
+
+	expected := "id     parent     notused     detail"
+
+	s.tc.AssertSqlEquals(outS, expected)
+}
+
 func (s *DBRootCommandShellSuite) Test_GivenATableWithRecordsWithSingleQuote_WhenCalllSelectAllFromTable_ExpectSingleQuoteScape() {
 	s.tc.CreateEmptySimpleTable("t")
 	_, errS, err := s.tc.Execute("INSERT INTO t VALUES (0, \"x'x\", 0)")

@@ -2,6 +2,7 @@ package db
 
 import (
 	"net/url"
+	"reflect"
 	"strings"
 	"unicode"
 )
@@ -44,4 +45,26 @@ func NeedsEscaping(name string) bool {
 		}
 	}
 	return false
+}
+
+var explainQueryPlanStatement = "EXPLAIN QUERY PLAN"
+var explainQueryPlanColumnNames = []string{"id", "parent", "notused", "detail"}
+
+func queryContainsExplainQueryPlanStatement(query string) bool {
+	return strings.HasPrefix(
+		strings.ToLower(query),
+		strings.ToLower(explainQueryPlanStatement),
+	)
+}
+
+func columnNamesMatchExplainQueryPlan(colNames []string) bool {
+	return reflect.DeepEqual(colNames, explainQueryPlanColumnNames)
+}
+
+// "query" can be a string containing multiple queries separated by ";" or a single query
+func IsResultComingFromExplainQueryPlan(statementResult StatementResult) bool {
+	query := statementResult.Query
+	columnNames := statementResult.ColumnNames
+	return queryContainsExplainQueryPlanStatement(query) &&
+		columnNamesMatchExplainQueryPlan(columnNames)
 }
