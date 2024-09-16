@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ type RootArgs struct {
 	statements string
 	quiet      bool
 	authToken  string
+	file       string
 }
 
 func NewRootCmd() *cobra.Command {
@@ -44,11 +46,38 @@ func NewRootCmd() *cobra.Command {
 				return shell.RunShellLine(shellConfig, rootArgs.statements)
 			}
 
+			if cmd.Flag("from-file").Changed {
+				if len(rootArgs.file) == 0 {
+					return fmt.Errorf("file not provided")
+				}
+
+				file, err := os.Open(rootArgs.file)
+				if err != nil {
+					return err
+				}
+				defer file.Close()
+
+				stat, err := file.Stat()
+				if err != nil {
+					return err
+				}
+
+				content := make([]byte, stat.Size())
+				_, err = file.Read(content)
+				if err != nil {
+					return err
+				}
+
+				return shell.RunShellLine(shellConfig, strings.TrimSpace(string(content)))
+
+			}
+
 			return shell.RunShell(shellConfig)
 		},
 	}
 
 	rootCmd.Flags().StringVarP(&rootArgs.statements, "exec", "e", "", "SQL statements separated by ;")
+	rootCmd.Flags().StringVarP(&rootArgs.file, "from-file", "f", "", "Execute commands from a file")
 	rootCmd.Flags().BoolVarP(&rootArgs.quiet, "quiet", "q", false, "Don't print welcome message")
 	rootCmd.Flags().StringVar(&rootArgs.authToken, "auth", "", "Add a JWT Token.")
 
